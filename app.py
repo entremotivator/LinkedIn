@@ -210,8 +210,11 @@ if not service_file:
 
 # Authenticate with Google
 try:
+    # Read the JSON file content
+    service_account_info = json.load(service_file)
+    
     creds = Credentials.from_service_account_info(
-        pd.read_json(service_file).to_dict(),
+        service_account_info,
         scopes=[
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
