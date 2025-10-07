@@ -290,6 +290,7 @@ if theme == "Dark":
         .section-header { color: #f1f5f9; }
         .filter-section { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
         .chart-container { background: #1e293b; color: #e2e8f0; }
+        .lead-title { color: #f1f5f9; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -306,7 +307,7 @@ data_source = st.sidebar.radio(
 df = pd.DataFrame()
 
 if data_source == "Demo Data":
-    # Create comprehensive demo data with all the columns mentioned - FIXED LENGTHS
+    # Create comprehensive demo data with all columns properly aligned
     num_records = 20
     demo_data = {
         'timestamp': [datetime.now() - timedelta(days=i, hours=i*2) for i in range(num_records)],
@@ -427,20 +428,20 @@ with st.sidebar.expander("🔎 Search Options", expanded=True):
     with col1:
         city_filter = st.selectbox(
             "📍 City",
-            ["All"] + sorted(df['search_city'].dropna().unique().tolist()) if 'search_city' in df.columns else ["All"],
+            ["All"] + sorted(df['search_city'].dropna().unique().tolist()) if 'search_city' in df.columns and not df.empty else ["All"],
             index=0
         )
     with col2:
         term_filter = st.selectbox(
             "💼 Search Term",
-            ["All"] + sorted(df['search_term'].dropna().unique().tolist()) if 'search_term' in df.columns else ["All"],
+            ["All"] + sorted(df['search_term'].dropna().unique().tolist()) if 'search_term' in df.columns and not df.empty else ["All"],
             index=0
         )
 
 with st.sidebar.expander("📊 Status & Date Filters", expanded=True):
     status_filter = st.selectbox(
         "📊 Status",
-        ["All"] + sorted(df['status'].dropna().unique().tolist()) if 'status' in df.columns else ["All"],
+        ["All"] + sorted(df['status'].dropna().unique().tolist()) if 'status' in df.columns and not df.empty else ["All"],
         index=0
     )
     
@@ -513,174 +514,49 @@ webhook_url = st.sidebar.text_input(
     help="Enter your n8n or automation webhook URL"
 )
 
-# ------------------ CUSTOM DATA FORM (N8N Webhook) ------------------ #
+# ------------------ SEARCH FORM (Consolidated) ------------------ #
 st.sidebar.markdown("---")
-st.sidebar.header("🔍 Search New Leads (via Webhook)")
+st.sidebar.header("🔍 Search New Leads")
 
-# Predefined options (copied from original code)
+# Predefined options
 SEARCH_TERMS = [
-    "Business Owner",
-    "CEO",
-    "Chief Executive Officer",
-    "Founder",
-    "Co-Founder",
-    "Managing Director",
-    "President",
-    "Vice President",
-    "VP of Sales",
-    "VP of Marketing",
-    "VP of Operations",
-    "VP of Business Development",
-    "Chief Operating Officer",
-    "Chief Marketing Officer",
-    "Chief Technology Officer",
-    "Chief Financial Officer",
-    "Chief Revenue Officer",
-    "Chief Sales Officer",
-    "Director of Sales",
-    "Director of Marketing",
-    "Director of Business Development",
-    "Director of Operations",
-    "Sales Manager",
-    "Marketing Manager",
-    "Operations Manager",
-    "General Manager",
-    "Regional Manager",
-    "District Manager",
-    "Entrepreneur",
-    "Executive Director",
-    "Head of Sales",
-    "Head of Marketing",
-    "Head of Operations",
-    "Head of Business Development",
-    "Partner",
-    "Managing Partner",
-    "Senior Partner",
-    "Owner",
-    "Principal",
-    "Consultant",
-    "Senior Consultant",
-    "Account Executive",
-    "Senior Account Executive",
-    "Business Development Manager",
-    "Sales Director",
-    "Marketing Director",
-    "Strategy Director",
-    "Growth Manager",
-    "Revenue Manager",
+    "Business Owner", "CEO", "Chief Executive Officer", "Founder", "Co-Founder",
+    "Managing Director", "President", "Vice President", "VP of Sales", "VP of Marketing",
+    "VP of Operations", "VP of Business Development", "Chief Operating Officer",
+    "Chief Marketing Officer", "Chief Technology Officer", "Chief Financial Officer",
+    "Chief Revenue Officer", "Chief Sales Officer", "Director of Sales",
+    "Director of Marketing", "Director of Business Development", "Director of Operations",
+    "Sales Manager", "Marketing Manager", "Operations Manager", "General Manager",
+    "Regional Manager", "District Manager", "Entrepreneur", "Executive Director",
+    "Head of Sales", "Head of Marketing", "Head of Operations",
+    "Head of Business Development", "Partner", "Managing Partner", "Senior Partner",
+    "Owner", "Principal", "Consultant", "Senior Consultant", "Account Executive",
+    "Senior Account Executive", "Business Development Manager", "Sales Director",
+    "Marketing Director", "Strategy Director", "Growth Manager", "Revenue Manager",
     "Commercial Director"
 ]
 
 CITIES = [
-    "Tampa",
-    "Miami",
-    "Orlando",
-    "Jacksonville",
-    "St. Petersburg",
-    "Fort Lauderdale",
-    "Tallahassee",
-    "Fort Myers",
-    "Sarasota",
-    "Naples",
-    "Atlanta",
-    "Charlotte",
-    "Raleigh",
-    "Nashville",
-    "Memphis",
-    "New Orleans",
-    "Birmingham",
-    "New York",
-    "Brooklyn",
-    "Manhattan",
-    "Queens",
-    "Los Angeles",
-    "San Francisco",
-    "San Diego",
-    "San Jose",
-    "Chicago",
-    "Houston",
-    "Dallas",
-    "Austin",
-    "San Antonio",
-    "Phoenix",
-    "Scottsdale",
-    "Philadelphia",
-    "Boston",
-    "Seattle",
-    "Portland",
-    "Denver",
-    "Boulder",
-    "Las Vegas",
-    "Salt Lake City",
-    "Minneapolis",
-    "Detroit",
-    "Columbus",
-    "Indianapolis",
-    "Milwaukee",
-    "Kansas City",
-    "St. Louis",
-    "Cleveland",
-    "Pittsburgh",
-    "Cincinnati",
-    "Richmond",
-    "Virginia Beach",
-    "Washington DC",
-    "Baltimore",
-    "Wilmington"
+    "Tampa", "Miami", "Orlando", "Jacksonville", "St. Petersburg", "Fort Lauderdale",
+    "Tallahassee", "Fort Myers", "Sarasota", "Naples", "Atlanta", "Charlotte",
+    "Raleigh", "Nashville", "Memphis", "New Orleans", "Birmingham", "New York",
+    "Brooklyn", "Manhattan", "Queens", "Los Angeles", "San Francisco", "San Diego",
+    "San Jose", "Chicago", "Houston", "Dallas", "Austin", "San Antonio", "Phoenix",
+    "Scottsdale", "Philadelphia", "Boston", "Seattle", "Portland", "Denver", "Boulder",
+    "Las Vegas", "Salt Lake City", "Minneapolis", "Detroit", "Columbus", "Indianapolis",
+    "Milwaukee", "Kansas City", "St. Louis", "Cleveland", "Pittsburgh", "Cincinnati",
+    "Richmond", "Virginia Beach", "Washington DC", "Baltimore", "Wilmington"
 ]
 
 COUNTRIES = [
-    "United States",
-    "Canada",
-    "United Kingdom",
-    "Australia",
-    "New Zealand",
-    "Germany",
-    "France",
-    "Spain",
-    "Italy",
-    "Portugal",
-    "Netherlands",
-    "Belgium",
-    "Switzerland",
-    "Austria",
-    "Sweden",
-    "Norway",
-    "Denmark",
-    "Finland",
-    "Ireland",
-    "Poland",
-    "Czech Republic",
-    "Greece",
-    "Turkey",
-    "Israel",
-    "United Arab Emirates",
-    "Saudi Arabia",
-    "Qatar",
-    "Singapore",
-    "Hong Kong",
-    "Japan",
-    "South Korea",
-    "China",
-    "Taiwan",
-    "Thailand",
-    "Malaysia",
-    "Indonesia",
-    "Philippines",
-    "Vietnam",
-    "India",
-    "Pakistan",
-    "Bangladesh",
-    "South Africa",
-    "Nigeria",
-    "Kenya",
-    "Egypt",
-    "Brazil",
-    "Mexico",
-    "Argentina",
-    "Chile",
-    "Colombia",
-    "Peru"
+    "United States", "Canada", "United Kingdom", "Australia", "New Zealand",
+    "Germany", "France", "Spain", "Italy", "Portugal", "Netherlands", "Belgium",
+    "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Ireland",
+    "Poland", "Czech Republic", "Greece", "Turkey", "Israel", "United Arab Emirates",
+    "Saudi Arabia", "Qatar", "Singapore", "Hong Kong", "Japan", "South Korea",
+    "China", "Taiwan", "Thailand", "Malaysia", "Indonesia", "Philippines", "Vietnam",
+    "India", "Pakistan", "Bangladesh", "South Africa", "Nigeria", "Kenya", "Egypt",
+    "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "Peru"
 ]
 
 with st.sidebar.form("webhook_form"):
@@ -734,238 +610,6 @@ with st.sidebar.form("webhook_form"):
             st.sidebar.error("⚠️ Request timeout - webhook may be slow")
         except Exception as e:
             st.sidebar.error(f"⚠️ Failed: {str(e)}")
-
-
-# ------------------ CUSTOM DATA FORM (N8N Webhook) ------------------ #
-st.sidebar.markdown("---")
-st.sidebar.header("🔍 Search New Leads (via Webhook)")
-
-# Predefined options (copied from original code)
-SEARCH_TERMS = [
-    "Business Owner",
-    "CEO",
-    "Chief Executive Officer",
-    "Founder",
-    "Co-Founder",
-    "Managing Director",
-    "President",
-    "Vice President",
-    "VP of Sales",
-    "VP of Marketing",
-    "VP of Operations",
-    "VP of Business Development",
-    "Chief Operating Officer",
-    "Chief Marketing Officer",
-    "Chief Technology Officer",
-    "Chief Financial Officer",
-    "Chief Revenue Officer",
-    "Chief Sales Officer",
-    "Director of Sales",
-    "Director of Marketing",
-    "Director of Business Development",
-    "Director of Operations",
-    "Sales Manager",
-    "Marketing Manager",
-    "Operations Manager",
-    "General Manager",
-    "Regional Manager",
-    "District Manager",
-    "Entrepreneur",
-    "Executive Director",
-    "Head of Sales",
-    "Head of Marketing",
-    "Head of Operations",
-    "Head of Business Development",
-    "Partner",
-    "Managing Partner",
-    "Senior Partner",
-    "Owner",
-    "Principal",
-    "Consultant",
-    "Senior Consultant",
-    "Account Executive",
-    "Senior Account Executive",
-    "Business Development Manager",
-    "Sales Director",
-    "Marketing Director",
-    "Strategy Director",
-    "Growth Manager",
-    "Revenue Manager",
-    "Commercial Director"
-]
-
-CITIES = [
-    "Tampa",
-    "Miami",
-    "Orlando",
-    "Jacksonville",
-    "St. Petersburg",
-    "Fort Lauderdale",
-    "Tallahassee",
-    "Fort Myers",
-    "Sarasota",
-    "Naples",
-    "Atlanta",
-    "Charlotte",
-    "Raleigh",
-    "Nashville",
-    "Memphis",
-    "New Orleans",
-    "Birmingham",
-    "New York",
-    "Brooklyn",
-    "Manhattan",
-    "Queens",
-    "Los Angeles",
-    "San Francisco",
-    "San Diego",
-    "San Jose",
-    "Chicago",
-    "Houston",
-    "Dallas",
-    "Austin",
-    "San Antonio",
-    "Phoenix",
-    "Scottsdale",
-    "Philadelphia",
-    "Boston",
-    "Seattle",
-    "Portland",
-    "Denver",
-    "Boulder",
-    "Las Vegas",
-    "Salt Lake City",
-    "Minneapolis",
-    "Detroit",
-    "Columbus",
-    "Indianapolis",
-    "Milwaukee",
-    "Kansas City",
-    "St. Louis",
-    "Cleveland",
-    "Pittsburgh",
-    "Cincinnati",
-    "Richmond",
-    "Virginia Beach",
-    "Washington DC",
-    "Baltimore",
-    "Wilmington"
-]
-
-COUNTRIES = [
-    "United States",
-    "Canada",
-    "United Kingdom",
-    "Australia",
-    "New Zealand",
-    "Germany",
-    "France",
-    "Spain",
-    "Italy",
-    "Portugal",
-    "Netherlands",
-    "Belgium",
-    "Switzerland",
-    "Austria",
-    "Sweden",
-    "Norway",
-    "Denmark",
-    "Finland",
-    "Ireland",
-    "Poland",
-    "Czech Republic",
-    "Greece",
-    "Turkey",
-    "Israel",
-    "United Arab Emirates",
-    "Saudi Arabia",
-    "Qatar",
-    "Singapore",
-    "Hong Kong",
-    "Japan",
-    "South Korea",
-    "China",
-    "Taiwan",
-    "Thailand",
-    "Malaysia",
-    "Indonesia",
-    "Philippines",
-    "Vietnam",
-    "India",
-    "Pakistan",
-    "Bangladesh",
-    "South Africa",
-    "Nigeria",
-    "Kenya",
-    "Egypt",
-    "Brazil",
-    "Mexico",
-    "Argentina",
-    "Chile",
-    "Colombia",
-    "Peru"
-]
-
-with st.sidebar.form("webhook_form"):
-    st.markdown("**Lead Search Criteria**")
-    
-    search_term = st.selectbox(
-        "Search Term*",
-        options=SEARCH_TERMS,
-        index=0,
-        help="Select the job title or role to search for"
-    )
-    
-    city = st.selectbox(
-        "City*",
-        options=CITIES,
-        index=0,
-        help="Select the target city"
-    )
-    
-    country = st.selectbox(
-        "Country*",
-        options=COUNTRIES,
-        index=0,
-        help="Select the target country"
-    )
-    
-    submitted = st.form_submit_button("🔍 Search Leads", use_container_width=True)
-    
-    if submitted:
-        payload = {
-            "search_term": search_term,
-            "city": city,
-            "country": country,
-            "timestamp": datetime.utcnow().isoformat(),
-            "source": "search_form"
-        }
-        
-        try:
-            response = requests.post(webhook_url, json=payload, timeout=10)
-            if response.status_code == 200:
-                st.sidebar.success(f"✅ Search initiated for {search_term} in {city}, {country}!")
-                st.session_state.webhook_history.append({
-                    "name": f"{search_term} - {city}",
-                    "status": "Success",
-                    "time": datetime.utcnow().strftime("%H:%M:%S"),
-                    "type": "Search"
-                })
-            else:
-                st.sidebar.error(f"❌ Error: HTTP {response.status_code}")
-        except requests.exceptions.Timeout:
-            st.sidebar.error("⚠️ Request timeout - webhook may be slow")
-        except Exception as e:
-            st.sidebar.error(f"⚠️ Failed: {str(e)}")
-
-# ------------------ DASHBOARD METRICS ------------------ #
-st.sidebar.markdown("---")
-st.sidebar.subheader("🔗 Integration Settings")
-webhook_url = st.sidebar.text_input(
-    "Webhook URL",
-    value="https://agentonline-u29564.vm.elestio.app/webhook/Leadlinked",
-    help="Enter your n8n or automation webhook URL"
-)
 
 # ------------------ DASHBOARD METRICS ------------------ #
 st.markdown(f"<div class='timestamp'>⏱️ Last Updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</div>", unsafe_allow_html=True)
@@ -995,7 +639,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
-    sent_count = len(df[df['status'] == 'sent']) if 'status' in df.columns else 0
+    sent_count = len(df[df['status'] == 'sent']) if 'status' in df.columns and not df.empty else 0
     st.markdown(f"""
     <div class="metric-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
         <div class="metric-value">{sent_count}</div>
@@ -1005,7 +649,7 @@ with col3:
     """, unsafe_allow_html=True)
 
 with col4:
-    pending_count = len(df[df['status'] == 'pending']) if 'status' in df.columns else 0
+    pending_count = len(df[df['status'] == 'pending']) if 'status' in df.columns and not df.empty else 0
     st.markdown(f"""
     <div class="metric-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
         <div class="metric-value">{pending_count}</div>
@@ -1255,7 +899,7 @@ with col2:
     st.metric("📊 Response Rate", f"{avg_response_rate}%", delta="+2.1%")
 
 with col3:
-    pending_followups = len(df[df['status'] == 'pending']) if 'status' in df.columns else 0
+    pending_followups = len(df[df['status'] == 'pending']) if 'status' in df.columns and not df.empty else 0
     st.metric("⏳ Pending Follow-ups", pending_followups, delta="Requires attention")
 
 with col4:
