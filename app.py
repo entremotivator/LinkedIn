@@ -835,26 +835,42 @@ with tab5:
         with col1:
             # Credits usage
             if 'credits_used' in df.columns:
-                total_credits = df['credits_used'].sum()
-                avg_credits = df['credits_used'].mean()
-                
-                st.metric(
-                    label="💳 Total Credits Used",
-                    value=f"{total_credits:,}",
-                    delta=f"Avg: {avg_credits:.1f} per lead"
-                )
+                try:
+                    # Convert to numeric, coercing errors to NaN
+                    credits_numeric = pd.to_numeric(df['credits_used'], errors='coerce')
+                    total_credits = credits_numeric.sum()
+                    avg_credits = credits_numeric.mean()
+                    
+                    st.metric(
+                        label="💳 Total Credits Used",
+                        value=f"{int(total_credits):,}" if not pd.isna(total_credits) else "N/A",
+                        delta=f"Avg: {avg_credits:.1f} per lead" if not pd.isna(avg_credits) else "N/A"
+                    )
+                except Exception as e:
+                    st.metric(
+                        label="💳 Total Credits Used",
+                        value="N/A",
+                        delta="Data error"
+                    )
         
         with col2:
             # Connection success rate
             if 'connection_status' in df.columns:
-                connected = len(df[df['connection_status'] == 'Connected'])
-                connection_rate = (connected / len(df) * 100) if len(df) > 0 else 0
-                
-                st.metric(
-                    label="🤝 Connection Rate",
-                    value=f"{connection_rate:.1f}%",
-                    delta=f"{connected} connections"
-                )
+                try:
+                    connected = len(df[df['connection_status'].astype(str).str.lower() == 'connected'])
+                    connection_rate = (connected / len(df) * 100) if len(df) > 0 else 0
+                    
+                    st.metric(
+                        label="🤝 Connection Rate",
+                        value=f"{connection_rate:.1f}%",
+                        delta=f"{connected} connections"
+                    )
+                except Exception as e:
+                    st.metric(
+                        label="🤝 Connection Rate",
+                        value="N/A",
+                        delta="Data error"
+                    )
         
         with col3:
             # Average response time (simulated)
