@@ -236,8 +236,24 @@ sheet_url = st.sidebar.text_input(
 try:
     sheet_id = sheet_url.split("/")[5]
     sheet = client.open_by_key(sheet_id).sheet1
-    data = sheet.get_all_records()
-    df = pd.DataFrame(data)
+    
+    # Define expected headers for the sheet
+    expected_headers = ['Name', 'Location', 'Title', 'LinkedIn_URL', 'Message', 'Status']
+    
+    # Get all values from the sheet
+    all_values = sheet.get_all_values()
+    
+    if len(all_values) > 0:
+        # Use the expected headers and start from the first row of data
+        df = pd.DataFrame(all_values, columns=expected_headers[:len(all_values[0])])
+        
+        # If there are more columns than expected, add generic names
+        if len(all_values[0]) > len(expected_headers):
+            for i in range(len(expected_headers), len(all_values[0])):
+                df.columns.values[i] = f'Column_{i+1}'
+    else:
+        df = pd.DataFrame(columns=expected_headers)
+    
     st.session_state.last_refresh = datetime.utcnow()
     st.sidebar.success(f"✅ Loaded {len(df)} leads")
 except Exception as e:
