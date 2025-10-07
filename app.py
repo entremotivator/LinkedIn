@@ -237,25 +237,24 @@ try:
     sheet_id = sheet_url.split("/")[5]
     sheet = client.open_by_key(sheet_id).sheet1
     
-    # Define expected headers for the sheet
-    expected_headers = ['Name', 'Location', 'Title', 'LinkedIn_URL', 'Message', 'Status']
-    
     # Get all values from the sheet
     all_values = sheet.get_all_values()
     
     if len(all_values) > 0:
-        # Use the expected headers and start from the first row of data
-        df = pd.DataFrame(all_values, columns=expected_headers[:len(all_values[0])])
+        # Determine number of columns
+        num_columns = len(all_values[0]) if all_values else 0
         
-        # If there are more columns than expected, add generic names
-        if len(all_values[0]) > len(expected_headers):
-            for i in range(len(expected_headers), len(all_values[0])):
-                df.columns.values[i] = f'Column_{i+1}'
+        # Create dynamic headers
+        base_headers = ['Name', 'Location', 'Title', 'LinkedIn_URL', 'Message', 'Status']
+        headers = base_headers[:num_columns] if num_columns <= len(base_headers) else base_headers + [f'Column_{i+1}' for i in range(len(base_headers), num_columns)]
+        
+        # Create DataFrame with all data
+        df = pd.DataFrame(all_values, columns=headers)
     else:
-        df = pd.DataFrame(columns=expected_headers)
+        df = pd.DataFrame(columns=['Name', 'Location', 'Title', 'LinkedIn_URL', 'Message', 'Status'])
     
     st.session_state.last_refresh = datetime.utcnow()
-    st.sidebar.success(f"✅ Loaded {len(df)} leads")
+    st.sidebar.success(f"✅ Loaded {len(df)} leads with {len(df.columns)} columns")
 except Exception as e:
     st.sidebar.error(f"⚠️ Unable to load data: {str(e)}")
     st.stop()
