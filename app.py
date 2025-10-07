@@ -907,7 +907,12 @@ st.markdown("<div class='section-header'>💬 Message Tracking & Management</div
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    messages_today = len(df[df['timestamp'].dt.date == datetime.now().date()]) if 'timestamp' in df.columns and not df.empty else 0
+    try:
+        df_temp = df.copy()
+        df_temp['timestamp'] = pd.to_datetime(df_temp['timestamp'], errors='coerce')
+        messages_today = len(df_temp[df_temp['timestamp'].dt.date == datetime.now().date()]) if 'timestamp' in df_temp.columns and not df_temp.empty else 0
+    except Exception:
+        messages_today = 0
     st.metric("📤 Messages Today", messages_today, delta="Since midnight")
 
 with col2:
@@ -926,23 +931,32 @@ with col4:
 if not df.empty and 'timestamp' in df.columns:
     st.subheader("📅 Message Timeline")
     
-    # Create a timeline chart
-    timeline_df = df.copy()
-    timeline_df['date'] = pd.to_datetime(timeline_df['timestamp']).dt.date
-    timeline_df['hour'] = pd.to_datetime(timeline_df['timestamp']).dt.hour
-    
-    daily_messages = timeline_df.groupby('date').size().reset_index(name='messages')
-    
-    fig_timeline = px.bar(
-        daily_messages,
-        x='date',
-        y='messages',
-        title="Daily Message Volume",
-        color='messages',
-        color_continuous_scale="Blues"
-    )
-    fig_timeline.update_layout(height=300)
-    st.plotly_chart(fig_timeline, use_container_width=True)
+    try:
+        # Create a timeline chart
+        timeline_df = df.copy()
+        timeline_df['timestamp'] = pd.to_datetime(timeline_df['timestamp'], errors='coerce')
+        timeline_df = timeline_df.dropna(subset=['timestamp'])
+        
+        if not timeline_df.empty:
+            timeline_df['date'] = timeline_df['timestamp'].dt.date
+            timeline_df['hour'] = timeline_df['timestamp'].dt.hour
+            
+            daily_messages = timeline_df.groupby('date').size().reset_index(name='messages')
+            
+            fig_timeline = px.bar(
+                daily_messages,
+                x='date',
+                y='messages',
+                title="Daily Message Volume",
+                color='messages',
+                color_continuous_scale="Blues"
+            )
+            fig_timeline.update_layout(height=300)
+            st.plotly_chart(fig_timeline, use_container_width=True)
+        else:
+            st.info("📊 No valid timestamp data available for timeline visualization")
+    except Exception as e:
+        st.warning(f"⚠️ Unable to display timeline: {str(e)}")
 
 st.markdown("---")
 
@@ -994,15 +1008,24 @@ else:
             
             with col1:
                 # Extract data with better fallbacks
-                name = row.get('profile_name', row.get('name', 'Unnamed Lead'))
-                location = row.get('profile_location', row.get('location', 'Unknown Location'))
-                tagline = row.get('profile_tagline', row.get('tagline', 'No tagline'))
-                linkedin_url = row.get('linkedin_url', '#')
-                message = row.get('linkedin_message', 'No message')
-                status = row.get('status', 'unknown')
-                timestamp = row.get('timestamp', datetime.now())
-                search_term = row.get('search_term', 'N/A')
-                search_city = row.get('search_city', 'N/A')
+                name = str(row.get('profile_name', row.get('name', 'Unnamed Lead')))
+                location = str(row.get('profile_location', row.get('location', 'Unknown Location')))
+                tagline = str(row.get('profile_tagline', row.get('tagline', 'No tagline')))
+                linkedin_url = str(row.get('linkedin_url', '#'))
+                message = str(row.get('linkedin_message', 'No message'))
+                status = str(row.get('status', 'unknown'))
+                
+                # Safe timestamp handling
+                try:
+                    timestamp = pd.to_datetime(row.get('timestamp', datetime.now()))
+                    if pd.isna(timestamp):
+                        timestamp = datetime.now()
+                    timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M')
+                except (ValueError, AttributeError, TypeError):
+                    timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+                
+                search_term = str(row.get('search_term', 'N/A'))
+                search_city = str(row.get('search_city', 'N/A'))
                 
                 # Status styling
                 status_class = {
@@ -1027,7 +1050,7 @@ else:
                     <div class="lead-msg">💬 {message}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
                         <span class="status-badge {status_class}">{status.replace('_', ' ').title()}</span>
-                        <span class="timestamp">🕒 {pd.to_datetime(timestamp).strftime('%Y-%m-%d %H:%M')}</span>
+                        <span class="timestamp">🕒 {timestamp_str}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1088,10 +1111,9 @@ else:
     
     else:  # Compact view
         for idx, (i, row) in enumerate(paginated_df.iterrows()):
-            name = row.get('profile_name', row.get('name', 'Unnamed Lead'))
-            location = row.get('profile_location', row.get('location', 'Unknown'))
-            status = row.get('status', 'unknown')
-            timestamp = row.get('timestamp', datetime.now())
+            name = str(row.get('profile_name', row.get('name', 'Unnamed Lead')))
+            location = str(row.get('profile_location', row.get('location', 'Unknown')))
+            status = str(row.get('status', 'unknown'))
             
             col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
             
@@ -1102,8 +1124,11 @@ else:
             with col3:
                 st.write(f"📊 {status}")
             with col4:
-                if st.button("🚀", key=f"send_compact_{i}", help="Send message"):
+                is_sent = status == 'sent' or i in st.session_state.sent_leads
+                if st.button("🚀", key=f"send_compact_{i}", help="Send message", disabled=is_sent):
+                    st.session_state.sent_leads.add(i)
                     st.success("Sent!")
+                    st.rerun()
 
 # ------------------ BULK ACTIONS ------------------ #
 if not filtered_df.empty:
